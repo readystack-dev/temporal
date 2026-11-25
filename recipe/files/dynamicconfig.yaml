@@ -1,0 +1,8 @@
+# Temporal dynamic config. The embedded server config template hard-defaults
+# dynamicConfigClient.filepath to /etc/temporal/config/dynamicconfig/docker.yaml, and the
+# server REFUSES TO START if that file is absent — `unable to create dynamic config client`,
+# before it binds any port. Upstream's own image ships this file; a from-source build has no
+# reason to, which is why it had to be supplied here (temporal chain 416).
+# An empty map is valid and means "every dynamic config key keeps its built-in default",
+# which is what we want for a single-node appliance. Operators can override keys here.
+{}

@@ -1,0 +1,109 @@
+{
+  "schema": "kitforge.build_recipe.v1",
+  "slug": "temporal",
+  "image": "readystack/temporal:v1.32.2-CE-ubuntu24.04-r5",
+  "build_method": "source-rebuild-go",
+  "source": {
+    "repo": "https://github.com/temporalio/temporal",
+    "ref": "v1.32.2",
+    "builder_image": "golang:1.26.11-bookworm",
+    "go_module_root": "go.temporal.io/server",
+    "go_version_required": "1.26.8",
+    "multi_module": false,
+    "git_sha": "d94e34a",
+    "_multi_module_note": "FALSE on purpose. Two go.mod files exist \u2014 the root one and tests/mixedbrain/go.mod \u2014 but the nested one is a TEST-ONLY module that the root module excludes automatically, and `go mod vendor` at the root will not fetch its deps. Setting multi_module here would make render_l009_kit vendor and build per module_dir (the etcd path) and drag in a second dep graph for nothing. There is no go.work; GOWORK=off below keeps it that way (L-A50).",
+    "_clone_note": "Do NOT clone --recursive. .gitmodules declares develop/docker-compose/grafana/provisioning/temporalio-dashboards -> github.com/temporalio/dashboards, which is dev-only, unused by the build, and would add both a network dependency and a second repo's license to the CE audit.",
+    "build_env": {
+      "CGO_ENABLED": "0",
+      "GOOS": "linux",
+      "GOARCH": "amd64",
+      "GOTOOLCHAIN": "local",
+      "GOFLAGS": "-buildvcs=false",
+      "GOWORK": "off"
+    },
+    "_build_env_note": "GOFLAGS=-buildvcs=false is MANDATORY here, not precautionary. cmd/server/main.go reads build.InfoData.GitRevision/GitTime/GitModified out of debug.ReadBuildInfo() VCS stamps; with .git in the build context Go stamps the commit and a dirty flag into the binary and bit-for-bit dies, and with .git present but git absent from the builder `go build` hard-errors instead. GOTOOLCHAIN=local because go.mod says `go 1.26.8` with no toolchain line \u2014 any builder below that would try to auto-download a toolchain, which is impossible under --network=none and fails with a confusing message. Builder is pinned to exactly 1.26.8 so it never needs to.",
+    "vendor_build": null,
+    "source_date_epoch": 1795164612,
+    "source_date_epoch_provenance": "the time release v1.32.2-CE-ubuntu24.04-r5 was cut (2026-11-20T08:50:12Z), by scripts/retarget.py --rev-bump: ReadyStack dates an image by when its release was packaged (owner 2026-11-10), recorded here once and used by every rebuild of the release; it builds upstream commit 6d085822273f, dated 2026-10-31T04:34:34Z (source.commit_epoch).",
+    "_version_note": "v1.32.0 is the LATEST temporal GA (queue-latest-version policy, owner 2026-06-25); confirmed in-tree at common/headers/version_checker.go ServerVersion = \"1.32.0\". CAREFUL WHEN RETARGETING: v1.31.3 and v1.30.7 were published LATER by date but are LTS-line backports, i.e. older by semver \u2014 the same false-positive shape as the prometheus LTS backport in the grafana VEX work. Also ignore tags suffixed -<n>.<n> (e.g. v1.32.0-163.5); those are internal build tags, not releases.",
+    "offline_rebuild_timeout_s": 10800,
+    "_timeout_note": "The vendored tree is ~300 modules including the whole aws-sdk-go-v2, google.golang.org/api, the OTel stack and modernc.org/sqlite+libc (machine-translated C-to-Go, enormous), on top of 2839 first-party .go files. That is squarely the shape that false-FAILed qdrant when G8 \u00a76.2's outer timeout capped the offline COMPILE; budget 3h rather than discover it at the gate.",
+    "runtime_packages_note": "curl is REQUIRED, not cosmetic \u2014 both the health probe and the namespace bootstrap in runtime_scaffold go over HTTP. From r2 (runtime_base) runtime_packages is not read: both go through rs-probe (the -X/-T form, runtime_base.rs_probe_sigv4).",
+    "commit": "6d085822273f4336796e6959c73ab1d14a23eb77",
+    "source_date_epoch_basis": "release-cut",
+    "commit_epoch": 1793421274
+  },
+  "binaries_from_source": [
+    {
+      "name": "temporal-server",
+      "main_pkg": "./cmd/server",
+      "cgo_enabled": 0,
+      "build_tags": [
+        "disable_grpc_modules"
+      ],
+      "ldflags": "-s -w",
+      "why": "The product. Upstream's Makefile `bins` target builds it with -tags disable_grpc_modules, which drops the gRPC transport pulled in by cloud.google.com/go/storage and cuts ~16MB off the binary. Note .goreleaser.yml does NOT pass that tag, so upstream's own published binaries are the fat variant; we follow the Makefile.",
+      "verify_subcmd": "--version"
+    },
+    {
+      "name": "temporal-sql-tool",
+      "main_pkg": "./cmd/tools/sql",
+      "cgo_enabled": 0,
+      "build_tags": [
+        "disable_grpc_modules"
+      ],
+      "ldflags": "-s -w",
+      "why": "Schema install/upgrade for the MySQL and Postgres SKUs. The SQLite SKU we ship does not need it at boot (see db.note), but it is the documented migration path for an operator moving off SQLite, so it belongs in the image.",
+      "verify_subcmd": "--version"
+    },
+    {
+      "name": "tdbg",
+      "main_pkg": "./cmd/tools/tdbg",
+      "cgo_enabled": 0,
+      "build_tags": [
+        "disable_grpc_modules"
+      ],
+      "ldflags": "-s -w",
+      "why": "The admin/debug CLI. Gives the admin handbook a real in-container troubleshooting surface, which otherwise would not exist: the `temporal` end-user CLI lives in a SEPARATE repo (temporalio/cli) and upstream's admin-tools image DOWNLOADS it from GitHub releases at docker-build time \u2014 a network step we will not reproduce.",
+      "verify_subcmd": "--version"
+    }
+  ],
+  "runtime_packages": [
+    "base-files",
+    "base-passwd",
+    "ca-certificates",
+    "coreutils",
+    "dash",
+    "gzip",
+    "libacl1",
+    "libc6",
+    "libpcre2-8-0",
+    "libreadline8t64",
+    "libselinux1",
+    "libsqlite3-0",
+    "libssl3t64",
+    "libtinfo6",
+    "openssl",
+    "readline-common",
+    "sqlite3",
+    "tar",
+    "tzdata",
+    "zlib1g"
+  ],
+  "runtime_base": {
+    "kind": "chisel",
+    "shell": true,
+    "tools": [
+      "tar",
+      "sqlite3"
+    ],
+    "slices": [
+      "gzip_bins"
+    ],
+    "provides": [
+      "gzip"
+    ],
+    "rs_probe_sigv4": true,
+    "packages": "vendored/chisel/packages.tsv"
+  }
+}

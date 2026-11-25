@@ -1,0 +1,9 @@
+{
+  "schema": "kitforge.source_tree_hash.v1",
+  "slug": "temporal",
+  "repo": "https://github.com/temporalio/temporal",
+  "ref": "v1.32.2",
+  "commit": "6d085822273f4336796e6959c73ab1d14a23eb77",
+  "tree_listing_sha256": "96b41e631f563f71248b899d3d4aca1d1507334e5e489c7be7a793f7bb6c39e6",
+  "file_count": 3792
+}

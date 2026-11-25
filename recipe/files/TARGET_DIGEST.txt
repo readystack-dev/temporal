@@ -1,0 +1,6 @@
+image_manifest_digest=sha256:584e42db12a15563fb531476753d6cafc0b1f939c68aa2bc11b3e13694b37ce4
+config_digest=sha256:7e045ab2527d5ad63f6ee96a5ec06baf8859572ad826bfb4957b34db6e3485fa
+tag=readystack/temporal:v1.32.2-CE-ubuntu24.04-r5
+probe_port=7243
+probe_path=/api/v1/namespaces
+probe_timeout=180
